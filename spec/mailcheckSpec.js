@@ -143,7 +143,7 @@ describe("mailcheck", function() {
         });
       });
 
-      it("splits multiple emails", function () {
+      it("splits last email on the list", function () {
         expect(mailcheck.splitEmail('test@example.com, onemoretest@onemoreexample.org')).toEqual({
           address:'onemoretest',
           domain:'onemoreexample.org',

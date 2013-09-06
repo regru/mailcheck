@@ -143,6 +143,14 @@ describe("mailcheck", function() {
         });
       });
 
+      it("splits last email on the list", function () {
+        expect(mailcheck.splitEmail('test@example.com, onemoretest@onemoreexample.org')).toEqual({
+          address:'onemoretest',
+          domain:'onemoreexample.org',
+          topLevelDomain:'org'
+        });
+      });
+
       it("splits RFC compliant emails", function () {
         expect(mailcheck.splitEmail('"foo@bar"@example.com')).toEqual({
           address:'"foo@bar"',

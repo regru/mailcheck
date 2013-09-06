@@ -26,7 +26,7 @@ var Kicksend = {
       opts.topLevelDomains = opts.topLevelDomains || Kicksend.mailcheck.defaultTopLevelDomains;
       opts.distanceFunction = opts.distanceFunction || Kicksend.sift3Distance;
 
-      var result = Kicksend.mailcheck.suggest(encodeURI(opts.email), opts.domains, opts.topLevelDomains, opts.distanceFunction);
+      var result = Kicksend.mailcheck.suggest(opts.email, opts.domains, opts.topLevelDomains, opts.distanceFunction);
 
       if (result) {
         if (opts.suggested) {
@@ -42,30 +42,36 @@ var Kicksend = {
     suggest: function(email, domains, topLevelDomains, distanceFunction) {
       email = email.toLowerCase();
 
-      var emailParts = this.splitEmail(email);
+      var emailParts = this.splitEmail(email),
+        suggestedEmails = [];
 
-      var closestDomain = this.findClosestDomain(emailParts.domain, domains, distanceFunction);
+      for (var i = 0; i < emailParts.length; i++) {
 
-      if (closestDomain) {
-        if (closestDomain != emailParts.domain) {
-          // The email address closely matches one of the supplied domains; return a suggestion
-          return { address: emailParts.address, domain: closestDomain, full: emailParts.address + "@" + closestDomain };
-        }
-      } else {
-        // The email address does not closely match one of the supplied domains
-        var closestTopLevelDomain = this.findClosestDomain(emailParts.topLevelDomain, topLevelDomains);
-        if (emailParts.domain && closestTopLevelDomain && closestTopLevelDomain != emailParts.topLevelDomain) {
-          // The email address may have a mispelled top-level domain; return a suggestion
-          var domain = emailParts.domain;
-          closestDomain = domain.substring(0, domain.lastIndexOf(emailParts.topLevelDomain)) + closestTopLevelDomain;
-          return { address: emailParts.address, domain: closestDomain, full: emailParts.address + "@" + closestDomain };
+        var closestDomain = this.findClosestDomain(emailParts[i].domain, domains, distanceFunction);
+
+        if (closestDomain) {
+          if (closestDomain != emailParts[i].domain) {
+            // The email address closely matches one of the supplied domains; return a suggestion
+            suggestedEmails.push( { address: emailParts[i].address, domain: closestDomain, full: emailParts[i].address + "@" + closestDomain, original: emailParts[i].address + "@" + emailParts[i].domain } );
+          }
+        } else {
+          // The email address does not closely match one of the supplied domains
+          var closestTopLevelDomain = this.findClosestDomain(emailParts[i].topLevelDomain, topLevelDomains);
+          if (emailParts[i].domain && closestTopLevelDomain && closestTopLevelDomain != emailParts[i].topLevelDomain) {
+            // The email address may have a mispelled top-level domain; return a suggestion
+            var domain = emailParts[i].domain;
+            closestDomain = domain.substring(0, domain.lastIndexOf(emailParts[i].topLevelDomain)) + closestTopLevelDomain;
+            suggestedEmails.push( { address: emailParts[i].address, domain: closestDomain, full: emailParts[i].address + "@" + closestDomain, original: emailParts[i].address + "@" + emailParts[i].domain } );
+          }
         }
       }
-      /* The email address exactly matches one of the supplied domains, does not closely
-       * match any domain and does not appear to simply have a mispelled top-level domain,
-       * or is an invalid email address; do not return a suggestion.
-       */
-      return false;
+      if (suggestedEmails.length == 0) {
+        return false;
+      } else if (suggestedEmails.length == 1) {
+        return suggestedEmails[0];
+      } else {
+        return suggestedEmails;
+      }
     },
 
     findClosestDomain: function(domain, domains, distanceFunction) {
@@ -141,43 +147,52 @@ var Kicksend = {
     },
 
     splitEmail: function(email) {
-      var parts = email.split('@');
+      var emails = email.split(','),
+        splitEmails = [];
 
-      if (parts.length < 2) {
-        return false;
-      }
+      for (var i = 0; i < emails.length; i++) {
+        var parts = emails[i].trim().split('@');
 
-      for (var i = 0; i < parts.length; i++) {
-        if (parts[i] === '') {
+        if (parts.length < 2) {
           return false;
         }
-      }
 
-      var domain = parts.pop();
-      var domainParts = domain.split('.');
-      var tld = '';
-
-      if (domainParts.length == 0) {
-        // The address does not have a top-level domain
-        return false;
-      } else if (domainParts.length == 1) {
-        // The address has only a top-level domain (valid under RFC)
-        tld = domainParts[0];
-      } else {
-        // The address has a domain and a top-level domain
-        for (var i = 1; i < domainParts.length; i++) {
-          tld += domainParts[i] + '.';
+        for (var j = 0; j < parts.length; j++) {
+          if (parts[j] === '') {
+            return false;
+          }
         }
-        if (domainParts.length >= 2) {
-          tld = tld.substring(0, tld.length - 1);
+
+        var domain = parts.pop();
+        var domainParts = domain.split('.');
+        var tld = '';
+
+        if (domainParts.length == 0) {
+          // The address does not have a top-level domain
+          return false;
+        } else if (domainParts.length == 1) {
+          // The address has only a top-level domain (valid under RFC)
+          tld = domainParts[0];
+        } else {
+          // The address has a domain and a top-level domain
+          for (var j = 1; j < domainParts.length; j++) {
+            tld += domainParts[j] + '.';
+          }
+          if (domainParts.length >= 2) {
+            tld = tld.substring(0, tld.length - 1);
+          }
         }
+
+        splitEmails.push(
+          {
+            topLevelDomain: tld,
+            domain: domain,
+            address: parts.join('@')
+          }
+        );
       }
 
-      return {
-        topLevelDomain: tld,
-        domain: domain,
-        address: parts.join('@')
-      }
+      return splitEmails;
     }
   }
 };

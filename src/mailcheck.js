@@ -185,9 +185,9 @@ var Kicksend = {
 
         splitEmails.push(
           {
-            topLevelDomain: tld,
+            address: parts.join('@'),
             domain: domain,
-            address: parts.join('@')
+            topLevelDomain: tld
           }
         );
       }

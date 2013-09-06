@@ -29,7 +29,8 @@ describe("mailcheck", function() {
         expect(suggestedSpy).toHaveBeenCalledWith({
           address:'test',
           domain:'hotmail.com',
-          full:'test@hotmail.com'
+          full:'test@hotmail.com',
+          original:'test@hotmail.co'
         });
 
         expect(emptySpy).not.toHaveBeenCalled();
@@ -58,19 +59,11 @@ describe("mailcheck", function() {
         expect(suggestedSpy).toHaveBeenCalledWith({
           address:'test',
           domain:'emaildomain.com',
-          full:'test@emaildomain.com'
+          full:'test@emaildomain.com',
+          original:'test@emaildomain.con'
         });
       });
 
-      it("escapes the element's value", function () {
-        mailcheck.run({
-          email: '<script>alert("a")</script>@emaildomain.con',
-          suggested:suggestedSpy,
-          empty:emptySpy,
-          domains:domains
-        });
-        expect(suggestedSpy.mostRecentCall.args[0].address).not.toMatch(/<script>/);
-      });
     });
 
     describe("return value", function () {
@@ -80,7 +73,8 @@ describe("mailcheck", function() {
         expect(result).toEqual({
           address: 'test',
           domain: 'hotmail.com',
-          full: 'test@hotmail.com'
+          full: 'test@hotmail.com',
+          original:'test@hotmail.co'
         });
       });
 
@@ -120,84 +114,95 @@ describe("mailcheck", function() {
     });
 
     describe("mailcheck.splitEmail", function () {
-      it("returns a hash of the address, the domain, and the top-level domain", function () {
-        expect(mailcheck.splitEmail('test@example.com')).toEqual({
-          address:'test',
-          domain:'example.com',
-          topLevelDomain:'com'
-        });
+      it("returns an array of hashes of the address, the domain, and the top-level domain", function () {
+        expect(mailcheck.splitEmail('test@example.com')).toEqual([
+          {
+            address:'test',
+            domain:'example.com',
+            topLevelDomain:'com'
+          }
+        ]);
 
-        expect(mailcheck.splitEmail('test@example.co.uk')).toEqual({
-          address:'test',
-          domain:'example.co.uk',
-          topLevelDomain:'co.uk'
-        });
+        expect(mailcheck.splitEmail('test@example.co.uk')).toEqual([
+          {
+            address:'test',
+            domain:'example.co.uk',
+            topLevelDomain:'co.uk'
+          }
+        ]);
 
         /* This test is for illustrative purposes as the splitEmail function should return a better
          * representation of the true top-level domain in the case of an email address with subdomains.
          */
-        expect(mailcheck.splitEmail('test@mail.randomsmallcompany.co.uk')).toEqual({
+        expect(mailcheck.splitEmail('test@mail.randomsmallcompany.co.uk')).toEqual([{
           address:'test',
           domain:'mail.randomsmallcompany.co.uk',
           topLevelDomain:'randomsmallcompany.co.uk'
-        });
+        }]);
       });
 
-      it("splits last email on the list", function () {
-        expect(mailcheck.splitEmail('test@example.com, onemoretest@onemoreexample.org')).toEqual({
+      it("splits multiple emails", function () {
+        expect(mailcheck.splitEmail('test@example.com, onemoretest@onemoreexample.org')).toEqual([
+        {
+          address:'test',
+          domain:'example.com',
+          topLevelDomain:'com'
+        },
+        {
           address:'onemoretest',
           domain:'onemoreexample.org',
           topLevelDomain:'org'
-        });
+        }
+        ]);
       });
 
       it("splits RFC compliant emails", function () {
-        expect(mailcheck.splitEmail('"foo@bar"@example.com')).toEqual({
+        expect(mailcheck.splitEmail('"foo@bar"@example.com')).toEqual([{
           address:'"foo@bar"',
           domain:'example.com',
           topLevelDomain:'com'
 
-        });
-        expect(mailcheck.splitEmail('containsnumbers1234567890@example.com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('containsnumbers1234567890@example.com')).toEqual([{
           address:'containsnumbers1234567890',
           domain:'example.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('contains+symbol@example.com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('contains+symbol@example.com')).toEqual([{
           address:'contains+symbol',
           domain:'example.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('contains-symbol@example.com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('contains-symbol@example.com')).toEqual([{
           address:'contains-symbol',
           domain:'example.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('contains.symbol@domain.contains.symbol')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('contains.symbol@domain.contains.symbol')).toEqual([{
           address:'contains.symbol',
           domain:'domain.contains.symbol',
           topLevelDomain:'contains.symbol'
-        });
-        expect(mailcheck.splitEmail('"contains.and\ symbols"@example.com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('"contains.and\ symbols"@example.com')).toEqual([{
           address:'"contains.and\ symbols"',
           domain:'example.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('"contains.and.@.symbols.com"@example.com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('"contains.and.@.symbols.com"@example.com')).toEqual([{
           address:'"contains.and.@.symbols.com"',
           domain:'example.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('"()<>[]:;@,\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"@allthesymbols.com')).toEqual({
-          address:'"()<>[]:;@,\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"',
+        }]);
+        expect(mailcheck.splitEmail('"()<>[]:;@\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"@allthesymbols.com')).toEqual([{
+          address:'"()<>[]:;@\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"',
           domain:'allthesymbols.com',
           topLevelDomain:'com'
-        });
-        expect(mailcheck.splitEmail('postbox@com')).toEqual({
+        }]);
+        expect(mailcheck.splitEmail('postbox@com')).toEqual([{
           address:'postbox',
           domain:'com',
           topLevelDomain:'com'
-        });
+        }]);
       });
 
       it("returns false for email addresses that are not RFC compliant", function () {
@@ -257,7 +262,8 @@ describe("mailcheck", function() {
       expect(suggestedSpy).toHaveBeenCalledWith($("#test-input"),{
         address: 'test',
         domain: 'hotmail.com',
-        full: 'test@hotmail.com'
+        full: 'test@hotmail.com',
+        original: 'test@hotmail.co'
       });
 
       expect(emptySpy).not.toHaveBeenCalled();

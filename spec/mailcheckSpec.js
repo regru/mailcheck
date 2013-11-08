@@ -157,12 +157,6 @@ describe("mailcheck", function() {
       });
 
       it("splits RFC compliant emails", function () {
-        expect(mailcheck.splitEmail('"foo@bar"@example.com')).toEqual([{
-          address:'"foo@bar"',
-          domain:'example.com',
-          topLevelDomain:'com'
-
-        }]);
         expect(mailcheck.splitEmail('containsnumbers1234567890@example.com')).toEqual([{
           address:'containsnumbers1234567890',
           domain:'example.com',
@@ -183,20 +177,10 @@ describe("mailcheck", function() {
           domain:'domain.contains.symbol',
           topLevelDomain:'contains.symbol'
         }]);
-        expect(mailcheck.splitEmail('"contains.and\ symbols"@example.com')).toEqual([{
-          address:'"contains.and\ symbols"',
-          domain:'example.com',
-          topLevelDomain:'com'
-        }]);
-        expect(mailcheck.splitEmail('"contains.and.@.symbols.com"@example.com')).toEqual([{
-          address:'"contains.and.@.symbols.com"',
-          domain:'example.com',
-          topLevelDomain:'com'
-        }]);
-        expect(mailcheck.splitEmail('"()<>[]:;@\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"@allthesymbols.com')).toEqual([{
-          address:'"()<>[]:;@\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"',
-          domain:'allthesymbols.com',
-          topLevelDomain:'com'
+        expect(mailcheck.splitEmail('contains%and&and^symbols@domain.contains.symbol')).toEqual([{
+          address:'contains%and&and^symbols',
+          domain:'domain.contains.symbol',
+          topLevelDomain:'contains.symbol'
         }]);
         expect(mailcheck.splitEmail('postbox@com')).toEqual([{
           address:'postbox',
@@ -210,6 +194,10 @@ describe("mailcheck", function() {
         expect(mailcheck.splitEmail('abc.example.com')).toBeFalsy();
         expect(mailcheck.splitEmail('@example.com')).toBeFalsy();
         expect(mailcheck.splitEmail('test@')).toBeFalsy();
+        expect(mailcheck.splitEmail('"()<>[]:;@\\\"!#$%&\'*+-/=?^_`{}|\ \ \ \ \ ~\ \ \ \ \ \ \ ?\ \ \ \ \ \ \ \ \ \ \ \ ^_`{}|~.a"@allthesymbols.com')).toBeFalsy();
+        expect(mailcheck.splitEmail('"contains.and.@.symbols.com"@example.com')).toBeFalsy();
+        expect(mailcheck.splitEmail('"contains.and\ symbols"@example.com')).toBeFalsy();
+        expect(mailcheck.splitEmail('"foo@bar"@example.com')).toBeFalsy();
       });
     });
 

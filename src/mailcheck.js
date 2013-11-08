@@ -151,6 +151,8 @@ var Kicksend = {
         splitEmails = [];
 
       for (var i = 0; i < emails.length; i++) {
+        var isNotValid;
+        var regExp = /^[a-zA-Z0-9.!#$%&’*+=?^_`{|}~-]+/;
         var parts = emails[i].trim().split('@');
 
         if (parts.length < 2) {
@@ -159,6 +161,12 @@ var Kicksend = {
 
         for (var j = 0; j < parts.length; j++) {
           if (parts[j] === '') {
+            return false;
+          }
+
+          isNotValid = parts[j].match(regExp) != parts[j];
+
+          if (isNotValid) {
             return false;
           }
         }
